@@ -6,7 +6,7 @@ export default function Sidebar({ username = "User" }) {
   return (
     // Main sidebar container
     // h-screen: full height | w-64: fixed width | bg-gray-900: dark background
-    <div className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between shadow-xl">
+    <div className="sticky top-0 h-screen w-64 bg-gray-900 text-white flex flex-col justify-between shadow-xl">
       {/* Navigation section */}
       <nav className="px-6 pt-14 flex-1">
         <ul className="space-y-14 text-xl">

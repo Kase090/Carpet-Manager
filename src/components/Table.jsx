@@ -55,6 +55,16 @@ export default function ProductsTable() {
   // columns that remain numeric for validation
   const numericColumns = new Set(["Ounce", "Cost", "RRP", "Sale Price"]);
 
+  // formated headings function
+  const formatColumnHeader = (columnName) => {
+    // if colunm name is one of the following add /lm
+    if (["Cost", "RRP", "Sale Price"].includes(columnName)) {
+      return `${columnName} /lm`;
+    }
+
+    return columnName;
+  };
+
   // Tracks which column headers should be hidden from the table UI
   const [hiddenColumns, setHiddenColumns] = useState([]);
 
@@ -295,6 +305,8 @@ export default function ProductsTable() {
   // --- Pagination setup ---
   const rowsPerPage = 20; // adjust how many rows per page
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
+
   const indexOfLast = currentPage * rowsPerPage;
   const indexOfFirst = indexOfLast - rowsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast);
@@ -305,6 +317,41 @@ export default function ProductsTable() {
     // set current page to 1 when any of the following states change
     setCurrentPage(1);
   }, [searchQuery, filterColumn, sortOption, products]);
+
+  useEffect(() => {
+    // keep the page input synchronized with the current page and available pages
+    // if there are no pages then default value 1
+    if (totalPages === 0) {
+      setPageInput("1");
+      return;
+    }
+
+    const clampedCurrent = Math.min(currentPage, totalPages);
+    if (clampedCurrent !== currentPage) {
+      setCurrentPage(clampedCurrent);
+    }
+    setPageInput(String(clampedCurrent));
+  }, [currentPage, totalPages]);
+  // for when the user changes the input
+  const handlePageInputChange = (event) => {
+    // set page input to the value
+    setPageInput(event.target.value);
+  };
+  //  go to page
+  const handleGoToPage = () => {
+    // set current page
+    const pageNumber = Number(pageInput);
+
+    if (!Number.isFinite(pageNumber)) return;
+
+    const clampedPage = Math.min(
+      Math.max(Math.floor(pageNumber), 1),
+      totalPages
+    );
+    if (clampedPage) {
+      setCurrentPage(clampedPage);
+    }
+  };
 
   useEffect(() => {
     // if a filtered column becomes hidden, reset back to "All" to avoid confusion
@@ -381,7 +428,7 @@ export default function ProductsTable() {
                     i === visibleColumns.length - 1 ? "rounded-tr-xl" : ""
                   }`}
                 >
-                  {col}
+                  {formatColumnHeader(col)}
                 </th>
               ))}
             </tr>
@@ -467,7 +514,7 @@ export default function ProductsTable() {
       </div>
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 my-4">
+        <div className="flex flex-wrap justify-center items-center gap-2 my-4">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
@@ -476,9 +523,33 @@ export default function ProductsTable() {
             Prev
           </button>
 
-          <span>
-            {currentPage} / {totalPages}
-          </span>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-700" htmlFor="page-input">
+              Page
+            </label>
+            <input
+              id="page-input"
+              type="number"
+              min={1} // first page
+              max={totalPages} // last page
+              value={pageInput}
+              // when user types -
+              onChange={handlePageInputChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleGoToPage();
+                }
+              }}
+              className="w-16 px-2 py-1 border border-gray-300 rounded"
+            />
+            <span className="text-sm text-gray-700">of {totalPages}</span>
+            <button
+              onClick={handleGoToPage} // function to go the the page
+              className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              Go
+            </button>
+          </div>
 
           <button
             onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
@@ -581,7 +652,6 @@ export default function ProductsTable() {
         </div>
       )}
 
-      {/* --- EDIT MODAL --- */}
       {/* --- EDIT MODAL --- */}
       {editingProduct !== null && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
@@ -739,31 +809,37 @@ export default function ProductsTable() {
               </button>
               <button
                 onClick={() => {
-                  if (!selectedColumn.trim() || !renameValue.trim()) {
-                    alert("Please select a column and enter a new name.");
+                  const trimmedSelected = selectedColumn.trim();
+                  const trimmedRename = renameValue.trim();
+
+                  if (trimmedSelected && !trimmedRename) {
+                    alert("Please enter a new name for the selected column.");
                     return;
                   }
 
-                  // Update column name in customColumns array
-                  const updatedColumns = customColumns.map((c) =>
-                    c === selectedColumn ? renameValue : c
-                  );
+                  if (trimmedSelected && trimmedRename) {
+                    // Update column name in customColumns array
+                    const updatedColumns = customColumns.map((c) =>
+                      c === trimmedSelected ? trimmedRename : c
+                    );
 
-                  // Update keys in product objects
-                  setProducts((prevProducts) =>
-                    prevProducts.map((product) => {
-                      const { [selectedColumn]: oldVal, ...rest } = product;
-                      return { ...rest, [renameValue]: oldVal };
-                    })
-                  );
-                  // Keep the hidden list in sync when a column is renamed
-                  setHiddenColumns((prevHidden) =>
-                    prevHidden.map((col) =>
-                      col === selectedColumn ? renameValue : col
-                    )
-                  );
+                    // Update keys in product objects
+                    setProducts((prevProducts) =>
+                      prevProducts.map((product) => {
+                        const { [trimmedSelected]: oldVal, ...rest } = product;
+                        return { ...rest, [trimmedRename]: oldVal };
+                      })
+                    );
+                    // Keep the hidden list in sync when a column is renamed
+                    setHiddenColumns((prevHidden) =>
+                      prevHidden.map((col) =>
+                        col === trimmedSelected ? trimmedRename : col
+                      )
+                    );
 
-                  setCustomColumns(updatedColumns);
+                    setCustomColumns(updatedColumns);
+                  }
+
                   setSelectedColumn("");
                   setRenameValue("");
                   setShowRenameModal(false);
