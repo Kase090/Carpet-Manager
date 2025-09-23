@@ -52,6 +52,12 @@ export default function ProductsTable() {
   const [newColumnName, setNewColumnName] = useState("");
   const [showModal, setShowModal] = useState(false);
 
+  // columns that remain numeric for validation
+  const numericColumns = new Set(["Ounce", "Cost", "RRP", "Sale Price"]);
+
+  // Tracks which column headers should be hidden from the table UI
+  const [hiddenColumns, setHiddenColumns] = useState([]);
+
   // Delete column modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [columnToDelete, setColumnToDelete] = useState("");
@@ -118,6 +124,9 @@ export default function ProductsTable() {
   const handleDeleteColumn = () => {
     if (!columnToDelete) return;
     setCustomColumns(customColumns.filter((col) => col !== columnToDelete));
+    setHiddenColumns((prevHidden) =>
+      prevHidden.filter((col) => col !== columnToDelete)
+    );
     setProducts((curProducts) =>
       curProducts.map((product) => {
         const { [columnToDelete]: _, ...rest } = product;
@@ -137,6 +146,8 @@ export default function ProductsTable() {
 
     // Only include editable columns (skip Profit Margin & Discount)
     fixedColumns.forEach((col) => {
+      if (hiddenColumns.includes(col)) return; // do not offer hidden columns for editing
+
       if (col === "Profit Margin" || col === "Discount") return; // skip these
 
       switch (col) {
@@ -165,6 +176,8 @@ export default function ProductsTable() {
 
     // Include any custom columns
     customColumns.forEach((col) => {
+      if (hiddenColumns.includes(col)) return; // skip hidden custom columns
+
       initialValues[col] = product[col] ?? "";
     });
 
@@ -173,6 +186,34 @@ export default function ProductsTable() {
 
   // Save edited row
   const handleSaveEdit = () => {
+    // Validate all numeric values before adding them to the row
+    const numericValues = {};
+
+    // find the input fields for the edited values
+    for (const field of numericColumns) {
+      if (!(field in editValues)) continue;
+
+      // value for each edited feild - even if it is not valid
+      const rawValue = String(editValues[field]).trim();
+
+      // boundary case - empty value
+      if (rawValue === "") {
+        alert(`${field} cannot be empty.`);
+        return;
+      }
+
+      // boundary case - not a number
+      // turn the value into a number (if possible)
+      const numericValue = Number(rawValue);
+      // if it doesn't turn into a number - alert user
+      if (!Number.isFinite(numericValue)) {
+        alert(`Please enter a valid number for ${field}.`);
+        return;
+      }
+      // if all is valid then set value
+      numericValues[field] = numericValue;
+    }
+
     const updatedProducts = [...products];
 
     // Map back modal values to product keys
@@ -180,6 +221,8 @@ export default function ProductsTable() {
 
     // Only update editable columns
     fixedColumns.forEach((col) => {
+      if (hiddenColumns.includes(col)) return; // keep hidden columns unchanged
+
       if (col === "Profit Margin" || col === "Discount") return;
 
       switch (col) {
@@ -190,16 +233,16 @@ export default function ProductsTable() {
           updatedProduct.supplier = editValues[col] ?? "";
           break;
         case "Ounce":
-          updatedProduct.ounce = editValues[col] ?? 0;
+          updatedProduct.ounce = numericValues[col] ?? 0;
           break;
         case "Cost":
-          updatedProduct.cost = editValues[col] ?? 0;
+          updatedProduct.cost = numericValues[col] ?? 0;
           break;
         case "RRP":
-          updatedProduct.rrp = editValues[col] ?? 0;
+          updatedProduct.rrp = numericValues[col] ?? 0;
           break;
         case "Sale Price":
-          updatedProduct.sale = editValues[col] ?? 0;
+          updatedProduct.sale = numericValues[col] ?? 0;
           break;
         default:
           updatedProduct[col] = editValues[col] ?? "";
@@ -239,6 +282,16 @@ export default function ProductsTable() {
     if (sortOption === "Price (High-Low)") return b.sale - a.sale;
     return 0;
   });
+  // Build a list of visible columns so to reuse  when rendering headers and rows
+  const visibleColumns = [...fixedColumns, ...customColumns].filter(
+    (col) => !hiddenColumns.includes(col)
+  );
+  // Filter so they are able to be sorted
+  const visibleFilterableColumns = [
+    ...fixedColumns.slice(0, 6),
+    ...customColumns,
+  ].filter((col) => !hiddenColumns.includes(col));
+
   // --- Pagination setup ---
   const rowsPerPage = 20; // adjust how many rows per page
   const [currentPage, setCurrentPage] = useState(1);
@@ -252,6 +305,13 @@ export default function ProductsTable() {
     // set current page to 1 when any of the following states change
     setCurrentPage(1);
   }, [searchQuery, filterColumn, sortOption, products]);
+
+  useEffect(() => {
+    // if a filtered column becomes hidden, reset back to "All" to avoid confusion
+    if (filterColumn !== "All" && hiddenColumns.includes(filterColumn)) {
+      setFilterColumn("All");
+    }
+  }, [filterColumn, hiddenColumns]);
 
   return (
     <div className="pt-12 max-w-full mx-auto">
@@ -271,7 +331,7 @@ export default function ProductsTable() {
             className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option>All</option>
-            {[...fixedColumns.slice(0, 6), ...customColumns].map((col, i) => (
+            {visibleFilterableColumns.map((col, i) => (
               <option key={i}>{col}</option>
             ))}
           </select>
@@ -314,13 +374,11 @@ export default function ProductsTable() {
               )}
 
               {/* Render fixed + custom columns */}
-              {[...fixedColumns, ...customColumns].map((col, i) => (
+              {visibleColumns.map((col, i) => (
                 <th
                   key={i}
                   className={`text-left px-8 py-5 font-semibold text-gray-900 text-lg ${
-                    i === fixedColumns.length + customColumns.length - 1
-                      ? "rounded-tr-xl"
-                      : ""
+                    i === visibleColumns.length - 1 ? "rounded-tr-xl" : ""
                   }`}
                 >
                   {col}
@@ -352,33 +410,52 @@ export default function ProductsTable() {
                       </td>
                     )}
 
-                    {/* Fixed columns */}
-                    <td className="px-8 py-4">{product.name}</td>
-                    <td className="px-8 py-4">{product.supplier}</td>
-                    <td className="px-8 py-4">{product.ounce}</td>
-                    <td className="px-8 py-4">${product.cost}</td>
-                    <td className="px-8 py-4">${product.rrp}</td>
-                    <td className="px-8 py-4">${product.sale}</td>
-                    <td className="px-8 py-4">{profitMargin.toFixed(1)}%</td>
-                    <td className="px-8 py-4">{discount.toFixed(1)}%</td>
+                    {visibleColumns.map((col, i) => {
+                      let content;
 
-                    {/* Custom columns */}
-                    {customColumns.map((col, i) => (
-                      <td key={i} className="px-8 py-4">
-                        {product[col]}
-                      </td>
-                    ))}
+                      // Map human friendly column names to the correct product field values
+                      switch (col) {
+                        case "Carpet Name":
+                          content = product.name;
+                          break;
+                        case "Supplier":
+                          content = product.supplier;
+                          break;
+                        case "Ounce":
+                          content = product.ounce;
+                          break;
+                        case "Cost":
+                          content = `$${product.cost}`;
+                          break;
+                        case "RRP":
+                          content = `$${product.rrp}`;
+                          break;
+                        case "Sale Price":
+                          content = `$${product.sale}`;
+                          break;
+                        case "Profit Margin":
+                          content = `${profitMargin.toFixed(1)}%`;
+                          break;
+                        case "Discount":
+                          content = `${discount.toFixed(1)}%`;
+                          break;
+                        default:
+                          content = product[col];
+                      }
+
+                      return (
+                        <td key={i} className="px-8 py-4">
+                          {content}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
             ) : (
               <tr>
                 <td
-                  colSpan={
-                    fixedColumns.length +
-                    customColumns.length +
-                    (editing ? 1 : 0)
-                  }
+                  colSpan={visibleColumns.length + (editing ? 1 : 0)}
                   className="px-8 py-6 text-center text-gray-500"
                 >
                   No products found.
@@ -513,7 +590,7 @@ export default function ProductsTable() {
 
             {/* Scrollable container for inputs */}
             <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-              {[...fixedColumns, ...customColumns].map((key) => {
+              {visibleColumns.map((key) => {
                 if (key === "Profit Margin" || key === "Discount") return null; // skip derived fields
 
                 return (
@@ -588,15 +665,51 @@ export default function ProductsTable() {
       {showRenameModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-96">
-            <h2 className="text-lg font-bold mb-4">Rename Custom Column</h2>
+            <h2 className="text-lg font-bold mb-4">Manage Columns</h2>
 
-            {/* Dropdown to pick column */}
+            {/* Column Hidden toggle section */}
+            <div className="mb-5 space-y-2">
+              <p className="text-sm text-gray-600">
+                Toggle a column to hide or show it in the table without deleting
+                any data.
+              </p>
+              <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                {/* iterate over the visiable columns and add check boxes for each */}
+                {[...fixedColumns, ...customColumns].map((col) => (
+                  <label
+                    key={col}
+                    className="flex items-center justify-between px-3 py-2 text-sm"
+                  >
+                    <span>{col}</span>
+                    <input
+                      type="checkbox"
+                      // if its checked it is becaue it is inside the column and vice versa
+                      checked={!hiddenColumns.includes(col)}
+                      // when checked or not checked
+                      onChange={() =>
+                        // change value of hidden columns
+                        setHiddenColumns((prevHidden) =>
+                          // check whether it is checked or not
+                          prevHidden.includes(col)
+                            ? // if it is being unticked then filter the column out
+                              prevHidden.filter((item) => item !== col)
+                            : // otherwise add it to the hidden state
+                              [...prevHidden, col]
+                        )
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* --- Rename custom columns section --- */}
             <select
               value={selectedColumn}
               onChange={(e) => setSelectedColumn(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 w-full mb-4"
             >
-              <option value="">Select column...</option>
+              <option value="">Select column to rename...</option>
               {customColumns.map((col, i) => (
                 <option key={i} value={col}>
                   {col}
@@ -604,7 +717,6 @@ export default function ProductsTable() {
               ))}
             </select>
 
-            {/* Input for new name */}
             <input
               type="text"
               placeholder="Enter new column name..."
@@ -643,6 +755,12 @@ export default function ProductsTable() {
                       const { [selectedColumn]: oldVal, ...rest } = product;
                       return { ...rest, [renameValue]: oldVal };
                     })
+                  );
+                  // Keep the hidden list in sync when a column is renamed
+                  setHiddenColumns((prevHidden) =>
+                    prevHidden.map((col) =>
+                      col === selectedColumn ? renameValue : col
+                    )
                   );
 
                   setCustomColumns(updatedColumns);
