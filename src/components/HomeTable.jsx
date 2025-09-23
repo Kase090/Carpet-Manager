@@ -44,6 +44,9 @@ export default function ProductsTable() {
       sale: 150,
     },
   ]);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState(""); // which column user wants to rename
+  const [renameValue, setRenameValue] = useState(""); // new name input
 
   const [customColumns, setCustomColumns] = useState([]);
   const [newColumnName, setNewColumnName] = useState("");
@@ -300,9 +303,14 @@ export default function ProductsTable() {
             <tr>
               {/* Add "Actions" as first column */}
               {editing && (
-                <th className="text-left px-4 py-5 font-semibold text-gray-900 text-lg rounded-tl-xl">
-                  ✏
-                </th>
+                <td className="text-center">
+                  <button
+                    onClick={() => setShowRenameModal(true)}
+                    className="text-left px-4 py-5 font-semibold text-gray-900 text-lg rounded-tl-xl"
+                  >
+                    ✏
+                  </button>
+                </td>
               )}
 
               {/* Render fixed + custom columns */}
@@ -497,19 +505,19 @@ export default function ProductsTable() {
       )}
 
       {/* --- EDIT MODAL --- */}
+      {/* --- EDIT MODAL --- */}
       {editingProduct !== null && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-96 max-h-[80vh] flex flex-col">
             <h2 className="text-lg font-bold mb-4">Edit Row</h2>
 
             {/* Scrollable container for inputs */}
-            {/* Scrollable container for inputs */}
-            <div className="flex-1 overflow-y-auto pr-2">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
               {[...fixedColumns, ...customColumns].map((key) => {
-                if (key === "Profit Margin" || key === "Discount") return null; // skip
+                if (key === "Profit Margin" || key === "Discount") return null; // skip derived fields
 
                 return (
-                  <div key={key} className="mb-3">
+                  <div key={key}>
                     <label className="block font-semibold mb-1">{key}</label>
                     <input
                       type="text"
@@ -525,15 +533,123 @@ export default function ProductsTable() {
             </div>
 
             {/* Action buttons */}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex justify-between gap-2 mt-4">
+              {/* Delete Row Button */}
               <button
-                onClick={() => setEditingProduct(null)}
+                onClick={() => {
+                  // editingProduct stores the row index (not the product object)
+                  const idx = editingProduct;
+
+                  // Safety: make sure the index is valid and get a readable name
+                  const productName = products[idx]?.name ?? `row ${idx + 1}`;
+
+                  // Confirm with the user
+                  if (
+                    !window.confirm(
+                      `Are you sure you want to delete "${productName}"?`
+                    )
+                  ) {
+                    return; // user cancelled
+                  }
+
+                  // Remove the row by index (non-mutating)
+                  setProducts((prev) => prev.filter((_, i) => i !== idx));
+
+                  // Reset modal state
+                  setEditingProduct(null);
+                  setEditValues({}); // optional: clear edit values
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete Row
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setEditingProduct(null);
+                  }}
+                  className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRenameModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-96">
+            <h2 className="text-lg font-bold mb-4">Rename Custom Column</h2>
+
+            {/* Dropdown to pick column */}
+            <select
+              value={selectedColumn}
+              onChange={(e) => setSelectedColumn(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full mb-4"
+            >
+              <option value="">Select column...</option>
+              {customColumns.map((col, i) => (
+                <option key={i} value={col}>
+                  {col}
+                </option>
+              ))}
+            </select>
+
+            {/* Input for new name */}
+            <input
+              type="text"
+              placeholder="Enter new column name..."
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full mb-4"
+              disabled={!selectedColumn}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setSelectedColumn("");
+                  setRenameValue("");
+                  setShowRenameModal(false);
+                }}
                 className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveEdit}
+                onClick={() => {
+                  if (!selectedColumn.trim() || !renameValue.trim()) {
+                    alert("Please select a column and enter a new name.");
+                    return;
+                  }
+
+                  // Update column name in customColumns array
+                  const updatedColumns = customColumns.map((c) =>
+                    c === selectedColumn ? renameValue : c
+                  );
+
+                  // Update keys in product objects
+                  setProducts((prevProducts) =>
+                    prevProducts.map((product) => {
+                      const { [selectedColumn]: oldVal, ...rest } = product;
+                      return { ...rest, [renameValue]: oldVal };
+                    })
+                  );
+
+                  setCustomColumns(updatedColumns);
+                  setSelectedColumn("");
+                  setRenameValue("");
+                  setShowRenameModal(false);
+                }}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Save
