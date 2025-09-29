@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getUserMessage } from "./UserMessages";
 
 export default function ProductsTable() {
   // --- GLOBAL CONFIG ---
@@ -52,6 +53,9 @@ export default function ProductsTable() {
   const [newColumnName, setNewColumnName] = useState("");
   const [showModal, setShowModal] = useState(false);
 
+  // ------------------------------------------------------------------------
+  const [userMessage, setUserMessage] = useState("");
+
   // columns that remain numeric for validation
   const numericColumns = new Set(["Ounce", "Cost", "RRP", "Sale Price"]);
 
@@ -103,7 +107,10 @@ export default function ProductsTable() {
       sale: 150,
       ...Object.fromEntries(customColumns.map((col) => [col, ""])),
     };
-    setProducts([...products, newRow]);
+    setProducts((prev) => [...prev, newRow]);
+    setUserMessage(
+      getUserMessage({ type: "rowAdded", label: newRow.name || "Row" })
+    );
   };
 
   // Add custom column
@@ -128,23 +135,31 @@ export default function ProductsTable() {
     );
     setNewColumnName("");
     setShowModal(false);
+    setUserMessage(getUserMessage({ type: "columnAdded", label: colName }));
   };
 
   // Delete custom column
   const handleDeleteColumn = () => {
     if (!columnToDelete) return;
-    setCustomColumns(customColumns.filter((col) => col !== columnToDelete));
+    const deletedColumn = columnToDelete;
+
+    setCustomColumns(customColumns.filter((col) => col !== deletedColumn));
     setHiddenColumns((prevHidden) =>
       prevHidden.filter((col) => col !== columnToDelete)
     );
     setProducts((curProducts) =>
       curProducts.map((product) => {
-        const { [columnToDelete]: _, ...rest } = product;
+        const { [deletedColumn]: _, ...rest } = product;
         return rest;
       })
     );
     setColumnToDelete("");
     setShowDeleteModal(false);
+    if (deletedColumn) {
+      setUserMessage(
+        getUserMessage({ type: "columnDeleted", label: deletedColumn })
+      );
+    }
   };
 
   // Handle edit button click
@@ -267,6 +282,11 @@ export default function ProductsTable() {
     updatedProducts[editingProduct] = updatedProduct;
 
     setProducts(updatedProducts);
+    const editedRowLabel =
+      updatedProduct.name || `Row ${Number(editingProduct) + 1}`;
+    setUserMessage(
+      getUserMessage({ type: "rowEdited", label: editedRowLabel })
+    );
     setEditingProduct(null);
   };
 
@@ -359,9 +379,29 @@ export default function ProductsTable() {
       setFilterColumn("All");
     }
   }, [filterColumn, hiddenColumns]);
+  // ----------------------------------------------------------------------------------------------------------------
+  // automatically updates when user messages changes
+  useEffect(() => {
+    if (!userMessage) return undefined;
+    //  4 second timer
+    const timeout = setTimeout(() => {
+      setUserMessage("");
+    }, 4000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [userMessage]);
 
   return (
     <div className="pt-12 max-w-full mx-auto">
+      {userMessage ? (
+        <div className="mx-6 mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-blue-800">
+          {userMessage}
+        </div>
+      ) : (
+        <div className="mx-6 mb-4 rounded-lg  h-[42px] py-2 "></div>
+      )}
       {/* --- SEARCH + FILTER + SORT --- */}
       <div className="flex flex-wrap items-center justify-between m-6 gap-4">
         <div className="flex items-center gap-3">
@@ -701,6 +741,9 @@ export default function ProductsTable() {
 
                   // Remove the row by index (non-mutating)
                   setProducts((prev) => prev.filter((_, i) => i !== idx));
+                  setUserMessage(
+                    getUserMessage({ type: "rowDeleted", label: productName })
+                  );
 
                   // Reset modal state
                   setEditingProduct(null);
