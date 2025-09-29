@@ -1,50 +1,168 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getUserMessage } from "./UserMessages";
 
-export default function ProductsTable() {
+const defaultFixedColumns = [
+  {
+    key: "name",
+    label: "Carpet Name",
+    defaultValue: "Carpet X",
+  },
+  {
+    key: "supplier",
+    label: "Supplier",
+    defaultValue: "Supplier X",
+  },
+  {
+    key: "ounce",
+    label: "Ounce",
+    isNumeric: true,
+    defaultValue: 60,
+  },
+  {
+    key: "cost",
+    label: "Cost",
+    isNumeric: true,
+    headerSuffix: " /lm",
+    format: (value) => `$${value}`,
+    defaultValue: 120,
+  },
+  {
+    key: "rrp",
+    label: "RRP",
+    isNumeric: true,
+    headerSuffix: " /lm",
+    format: (value) => `$${value}`,
+    defaultValue: 180,
+  },
+  {
+    key: "sale",
+    label: "Sale Price",
+    isNumeric: true,
+    headerSuffix: " /lm",
+    format: (value) => `$${value}`,
+    defaultValue: 150,
+  },
+  {
+    key: "profitMargin",
+    label: "Profit Margin",
+    isDerived: true,
+    format: (value) => `${value.toFixed(1)}%`,
+    derive: (row) => {
+      if (!row) return 0;
+      const cost = Number(row.cost ?? 0);
+      const sale = Number(row.sale ?? 0);
+      if (sale === 0) return 0;
+      return ((sale - cost) / sale) * 100;
+    },
+  },
+  {
+    key: "discount",
+    label: "Discount",
+    isDerived: true,
+    format: (value) => `${value.toFixed(1)}%`,
+    derive: (row) => {
+      if (!row) return 0;
+      const rrp = Number(row.rrp ?? 0);
+      const sale = Number(row.sale ?? 0);
+      if (rrp === 0) return 0;
+      return ((rrp - sale) / rrp) * 100;
+    },
+  },
+];
+
+const toKey = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+(\w)/g, (_, char) => char.toUpperCase())
+    .replace(/\s/g, "");
+
+const normalizeColumn = (column) => {
+  const columnObject =
+    typeof column === "string" ? { label: column } : { ...column };
+
+  if (!columnObject.label) {
+    throw new Error("Column definitions must include a label");
+  }
+
+  return {
+    format: (value) => value,
+    headerSuffix: "",
+    isDerived: false,
+    isNumeric: false,
+    ...columnObject,
+    key: columnObject.key ?? toKey(columnObject.label),
+  };
+};
+
+export default function ProductsTable({
+  fixedColumns: fixedColumnsProp,
+  initialData,
+}) {
   // --- GLOBAL CONFIG ---
   const MAX_CUSTOM_COLUMNS = 10;
   const MAX_COLUMN_NAME_LENGTH = 30;
 
   // --- FIXED COLUMNS (cannot be deleted) ---
-  const fixedColumns = [
-    "Carpet Name",
-    "Supplier",
-    "Ounce",
-    "Cost",
-    "RRP",
-    "Sale Price",
-    "Profit Margin",
-    "Discount",
-  ];
+  const fixedColumns = useMemo(
+    () => (fixedColumnsProp ?? defaultFixedColumns).map(normalizeColumn),
+    [fixedColumnsProp]
+  );
 
-  // --- STATE ---
-  const [products, setProducts] = useState([
-    {
-      name: "Carpet 1",
-      supplier: "Supplier 1",
-      ounce: 99,
-      cost: 100,
-      rrp: 150,
-      sale: 120,
-    },
-    {
-      name: "Carpet 2",
-      supplier: "Supplier 2",
-      ounce: 40,
-      cost: 90,
-      rrp: 140,
-      sale: 110,
-    },
-    {
-      name: "Carpet 3",
-      supplier: "Supplier 3",
-      ounce: 60,
-      cost: 120,
-      rrp: 180,
-      sale: 150,
-    },
-  ]);
+  const columnMap = useMemo(
+    () =>
+      Object.fromEntries(fixedColumns.map((column) => [column.label, column])),
+    [fixedColumns]
+  );
+  const defaultProducts = useMemo(
+    () => [
+      {
+        name: "Carpet 1",
+        supplier: "Supplier 1",
+        ounce: 99,
+        cost: 100,
+        rrp: 150,
+        sale: 120,
+      },
+      {
+        name: "Carpet 2",
+        supplier: "Supplier 2",
+        ounce: 40,
+        cost: 90,
+        rrp: 140,
+        sale: 110,
+      },
+      {
+        name: "Carpet 3",
+        supplier: "Supplier 3",
+        ounce: 60,
+        cost: 120,
+        rrp: 180,
+        sale: 150,
+      },
+    ],
+    []
+  );
+
+  const [products, setProducts] = useState(() => {
+    if (Array.isArray(initialData) && initialData.length > 0) {
+      return initialData.map((item) => ({ ...item }));
+    }
+    return defaultProducts;
+  });
+
+  useEffect(() => {
+    if (!Array.isArray(initialData)) return;
+
+    if (initialData.length === 0) {
+      setProducts([]);
+      return;
+    }
+
+    setProducts(initialData.map((item) => ({ ...item })));
+  }, [initialData]);
+
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState(""); // which column user wants to rename
   const [renameValue, setRenameValue] = useState(""); // new name input
@@ -56,17 +174,15 @@ export default function ProductsTable() {
   // ------------------------------------------------------------------------
   const [userMessage, setUserMessage] = useState("");
 
-  // columns that remain numeric for validation
-  const numericColumns = new Set(["Ounce", "Cost", "RRP", "Sale Price"]);
-
   // formated headings function
-  const formatColumnHeader = (columnName) => {
-    // if colunm name is one of the following add /lm
-    if (["Cost", "RRP", "Sale Price"].includes(columnName)) {
-      return `${columnName} /lm`;
+  const formatColumnHeader = (columnLabel) => {
+    const column = columnMap[columnLabel];
+    if (!column) return columnLabel;
+    if (column.headerSuffix) {
+      return `${column.label}${column.headerSuffix}`;
     }
 
-    return columnName;
+    return column.label;
   };
 
   // Tracks which column headers should be hidden from the table UI
@@ -98,18 +214,25 @@ export default function ProductsTable() {
       alert(`You have reached the maximum number of rows (1000).`);
       return;
     }
-    const newRow = {
-      name: "Carpet X",
-      supplier: "Supplier X",
-      ounce: 60,
-      cost: 120,
-      rrp: 180,
-      sale: 150,
-      ...Object.fromEntries(customColumns.map((col) => [col, ""])),
-    };
+    const newRow = {};
+    fixedColumns.forEach((column) => {
+      if (column.isDerived) return;
+      if (column.defaultValue !== undefined) {
+        newRow[column.key] = column.defaultValue;
+      } else {
+        newRow[column.key] = column.isNumeric ? 0 : "";
+      }
+    });
+    customColumns.forEach((column) => {
+      newRow[column] = "";
+    });
     setProducts((prev) => [...prev, newRow]);
+    const primaryColumn = fixedColumns[0];
     setUserMessage(
-      getUserMessage({ type: "rowAdded", label: newRow.name || "Row" })
+      getUserMessage({
+        type: "rowAdded",
+        label: (primaryColumn ? newRow[primaryColumn.key] : undefined) || "Row",
+      })
     );
   };
 
@@ -169,34 +292,12 @@ export default function ProductsTable() {
     // Map product object keys to the column display names used in the modal
     const initialValues = {};
 
-    // Only include editable columns (skip Profit Margin & Discount)
-    fixedColumns.forEach((col) => {
-      if (hiddenColumns.includes(col)) return; // do not offer hidden columns for editing
+    // Only include editable columns (skip derived columns)
+    fixedColumns.forEach((column) => {
+      if (hiddenColumns.includes(column.label)) return;
+      if (column.isDerived) return;
 
-      if (col === "Profit Margin" || col === "Discount") return; // skip these
-
-      switch (col) {
-        case "Carpet Name":
-          initialValues[col] = product.name;
-          break;
-        case "Supplier":
-          initialValues[col] = product.supplier;
-          break;
-        case "Ounce":
-          initialValues[col] = product.ounce;
-          break;
-        case "Cost":
-          initialValues[col] = product.cost;
-          break;
-        case "RRP":
-          initialValues[col] = product.rrp;
-          break;
-        case "Sale Price":
-          initialValues[col] = product.sale;
-          break;
-        default:
-          initialValues[col] = product[col] ?? "";
-      }
+      initialValues[column.label] = product[column.key] ?? "";
     });
 
     // Include any custom columns
@@ -215,15 +316,15 @@ export default function ProductsTable() {
     const numericValues = {};
 
     // find the input fields for the edited values
-    for (const field of numericColumns) {
-      if (!(field in editValues)) continue;
+    for (const column of fixedColumns) {
+      if (!column.isNumeric) continue;
+      if (!(column.label in editValues)) continue;
 
-      // value for each edited feild - even if it is not valid
-      const rawValue = String(editValues[field]).trim();
+      const rawValue = String(editValues[column.label]).trim();
 
       // boundary case - empty value
       if (rawValue === "") {
-        alert(`${field} cannot be empty.`);
+        alert(`${column.label} cannot be empty.`);
         return;
       }
 
@@ -232,11 +333,11 @@ export default function ProductsTable() {
       const numericValue = Number(rawValue);
       // if it doesn't turn into a number - alert user
       if (!Number.isFinite(numericValue)) {
-        alert(`Please enter a valid number for ${field}.`);
+        alert(`Please enter a valid number for ${column.label}.`);
         return;
       }
       // if all is valid then set value
-      numericValues[field] = numericValue;
+      numericValues[column.key] = numericValue;
     }
 
     const updatedProducts = [...products];
@@ -245,32 +346,14 @@ export default function ProductsTable() {
     const updatedProduct = { ...products[editingProduct] }; // start with original
 
     // Only update editable columns
-    fixedColumns.forEach((col) => {
-      if (hiddenColumns.includes(col)) return; // keep hidden columns unchanged
+    fixedColumns.forEach((column) => {
+      if (hiddenColumns.includes(column.label)) return;
+      if (column.isDerived) return;
 
-      if (col === "Profit Margin" || col === "Discount") return;
-
-      switch (col) {
-        case "Carpet Name":
-          updatedProduct.name = editValues[col] ?? "";
-          break;
-        case "Supplier":
-          updatedProduct.supplier = editValues[col] ?? "";
-          break;
-        case "Ounce":
-          updatedProduct.ounce = numericValues[col] ?? 0;
-          break;
-        case "Cost":
-          updatedProduct.cost = numericValues[col] ?? 0;
-          break;
-        case "RRP":
-          updatedProduct.rrp = numericValues[col] ?? 0;
-          break;
-        case "Sale Price":
-          updatedProduct.sale = numericValues[col] ?? 0;
-          break;
-        default:
-          updatedProduct[col] = editValues[col] ?? "";
+      if (column.isNumeric) {
+        updatedProduct[column.key] = numericValues[column.key] ?? 0;
+      } else {
+        updatedProduct[column.key] = editValues[column.label] ?? "";
       }
     });
 
@@ -282,8 +365,11 @@ export default function ProductsTable() {
     updatedProducts[editingProduct] = updatedProduct;
 
     setProducts(updatedProducts);
+    const primaryColumn = fixedColumns[0];
     const editedRowLabel =
       updatedProduct.name || `Row ${Number(editingProduct) + 1}`;
+    (primaryColumn ? updatedProduct[primaryColumn.key] : undefined) ||
+      `Row ${Number(editingProduct) + 1}`;
     setUserMessage(
       getUserMessage({ type: "rowEdited", label: editedRowLabel })
     );
@@ -299,28 +385,53 @@ export default function ProductsTable() {
         String(val).toLowerCase().includes(search)
       );
     } else {
-      const key = filterColumn.toLowerCase().replace(" ", "");
-      return String(product[key]).toLowerCase().includes(search);
+      const column = columnMap[filterColumn];
+      const key = column ? column.key : filterColumn;
+      const value =
+        column && column.isDerived && column.derive
+          ? column.derive(product)
+          : product[key];
+      return String(value ?? "")
+        .toLowerCase()
+        .includes(search);
     }
   });
 
   // Sorting
   filteredProducts = [...filteredProducts].sort((a, b) => {
-    if (sortOption === "Name (A-Z)") return a.name.localeCompare(b.name);
-    if (sortOption === "Name (Z-A)") return b.name.localeCompare(a.name);
-    if (sortOption === "Price (Low-High)") return a.sale - b.sale;
-    if (sortOption === "Price (High-Low)") return b.sale - a.sale;
+    if (sortOption === "Name (A-Z)" || sortOption === "Name (Z-A)") {
+      const primaryColumn = fixedColumns[0];
+      const key = primaryColumn ? primaryColumn.key : "name";
+      const valueA = String(a[key] ?? "");
+      const valueB = String(b[key] ?? "");
+      return sortOption === "Name (A-Z)"
+        ? valueA.localeCompare(valueB)
+        : valueB.localeCompare(valueA);
+    }
+    if (
+      sortOption === "Price (Low-High)" ||
+      sortOption === "Price (High-Low)"
+    ) {
+      const saleColumnKey = columnMap["Sale Price"]?.key ?? "sale";
+      const valueA = Number(a[saleColumnKey] ?? 0);
+      const valueB = Number(b[saleColumnKey] ?? 0);
+      return sortOption === "Price (Low-High)"
+        ? valueA - valueB
+        : valueB - valueA;
+    }
     return 0;
   });
   // Build a list of visible columns so to reuse  when rendering headers and rows
-  const visibleColumns = [...fixedColumns, ...customColumns].filter(
-    (col) => !hiddenColumns.includes(col)
-  );
+  const visibleColumns = [
+    ...fixedColumns.map((column) => column.label),
+    ...customColumns,
+  ].filter((columnLabel) => !hiddenColumns.includes(columnLabel));
   // Filter so they are able to be sorted
   const visibleFilterableColumns = [
-    ...fixedColumns.slice(0, 6),
-    ...customColumns,
-  ].filter((col) => !hiddenColumns.includes(col));
+    ...fixedColumns
+      .filter((column) => !column.isDerived)
+      .map((column) => column.label),
+  ].filter((columnLabel) => !hiddenColumns.includes(columnLabel));
 
   // --- Pagination setup ---
   const rowsPerPage = 20; // adjust how many rows per page
@@ -477,11 +588,6 @@ export default function ProductsTable() {
           <tbody className="divide-y divide-gray-300">
             {currentProducts.length > 0 ? ( // <-- use currentProducts instead of filteredProducts
               currentProducts.map((product, rowIndex) => {
-                const profitMargin =
-                  ((product.sale - product.cost) / product.sale) * 100;
-                const discount =
-                  ((product.rrp - product.sale) / product.rrp) * 100;
-
                 return (
                   <tr key={rowIndex} className="hover:bg-gray-50 align-top">
                     {/* Edit button */}
@@ -497,37 +603,24 @@ export default function ProductsTable() {
                       </td>
                     )}
 
-                    {visibleColumns.map((col, i) => {
+                    {visibleColumns.map((columnLabel, i) => {
+                      const column = columnMap[columnLabel];
                       let content;
 
-                      // Map human friendly column names to the correct product field values
-                      switch (col) {
-                        case "Carpet Name":
-                          content = product.name;
-                          break;
-                        case "Supplier":
-                          content = product.supplier;
-                          break;
-                        case "Ounce":
-                          content = product.ounce;
-                          break;
-                        case "Cost":
-                          content = `$${product.cost}`;
-                          break;
-                        case "RRP":
-                          content = `$${product.rrp}`;
-                          break;
-                        case "Sale Price":
-                          content = `$${product.sale}`;
-                          break;
-                        case "Profit Margin":
-                          content = `${profitMargin.toFixed(1)}%`;
-                          break;
-                        case "Discount":
-                          content = `${discount.toFixed(1)}%`;
-                          break;
-                        default:
-                          content = product[col];
+                      if (column) {
+                        const rawValue =
+                          column.isDerived && column.derive
+                            ? column.derive(product)
+                            : product[column.key];
+                        const safeValue =
+                          rawValue === undefined || rawValue === null
+                            ? ""
+                            : rawValue;
+                        content = column.format
+                          ? column.format(safeValue)
+                          : safeValue;
+                      } else {
+                        content = product[columnLabel] ?? "";
                       }
 
                       return (
@@ -700,17 +793,23 @@ export default function ProductsTable() {
 
             {/* Scrollable container for inputs */}
             <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-              {visibleColumns.map((key) => {
-                if (key === "Profit Margin" || key === "Discount") return null; // skip derived fields
+              {visibleColumns.map((columnLabel) => {
+                const column = columnMap[columnLabel];
+                if (column && column.isDerived) return null; // skip derived fields
 
                 return (
-                  <div key={key}>
-                    <label className="block font-semibold mb-1">{key}</label>
+                  <div key={columnLabel}>
+                    <label className="block font-semibold mb-1">
+                      {columnLabel}
+                    </label>
                     <input
                       type="text"
-                      value={editValues[key] ?? ""}
+                      value={editValues[columnLabel] ?? ""}
                       onChange={(e) =>
-                        setEditValues({ ...editValues, [key]: e.target.value })
+                        setEditValues({
+                          ...editValues,
+                          [columnLabel]: e.target.value,
+                        })
                       }
                       className="border border-gray-300 rounded-lg px-3 py-2 w-full"
                     />
@@ -728,7 +827,11 @@ export default function ProductsTable() {
                   const idx = editingProduct;
 
                   // Safety: make sure the index is valid and get a readable name
-                  const productName = products[idx]?.name ?? `row ${idx + 1}`;
+                  const primaryColumn = fixedColumns[0];
+                  const productLabel = primaryColumn
+                    ? products[idx]?.[primaryColumn.key]
+                    : undefined;
+                  const productName = productLabel ?? `row ${idx + 1}`;
 
                   // Confirm with the user
                   if (
@@ -788,7 +891,10 @@ export default function ProductsTable() {
               </p>
               <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y">
                 {/* iterate over the visiable columns and add check boxes for each */}
-                {[...fixedColumns, ...customColumns].map((col) => (
+                {[
+                  ...fixedColumns.map((column) => column.label),
+                  ...customColumns,
+                ].map((col) => (
                   <label
                     key={col}
                     className="flex items-center justify-between px-3 py-2 text-sm"

@@ -2,7 +2,7 @@
 import { Home, Table, BarChart2, DollarSign, LogOut } from "lucide-react";
 
 // Accepts an optional `username` prop (defaults to "User")
-export default function Sidebar({ username = "User" }) {
+export default function Sidebar({ username = "User", setPage = { setPage } }) {
   return (
     // Main sidebar container
     // h-screen: full height | w-64: fixed width | bg-gray-900: dark background
@@ -11,10 +11,16 @@ export default function Sidebar({ username = "User" }) {
       <nav className="px-6 pt-14 flex-1">
         <ul className="space-y-14 text-xl">
           {/* Navigation Links */}
-          <li className="flex items-center gap-4 cursor-pointer">
+          <li
+            onClick={() => setPage("home")}
+            className="flex items-center gap-4 cursor-pointer"
+          >
             <Home size={24} /> Home
           </li>
-          <li className="flex items-center gap-4 cursor-pointer">
+          <li
+            onClick={() => setPage("products")}
+            className="flex items-center gap-4 cursor-pointer"
+          >
             <Table size={24} /> Products
           </li>
           <li className="flex items-center gap-4 cursor-pointer">
