@@ -95,10 +95,65 @@ const normalizeColumn = (column) => {
     key: columnObject.key ?? toKey(columnObject.label),
   };
 };
+const normalizeSortOption = (option, columnMap, fallbackKey) => {
+  if (!option || !option.label) {
+    throw new Error("Sort options must include a label");
+  }
 
+  const columnFromLabel = option.columnLabel
+    ? columnMap[option.columnLabel]
+    : undefined;
+  const deriveValue =
+    option.getValue ??
+    (columnFromLabel && columnFromLabel.isDerived && columnFromLabel.derive
+      ? (row) => columnFromLabel.derive(row)
+      : undefined);
+  const valueAccessor =
+    deriveValue ||
+    (columnFromLabel
+      ? (row) => row[columnFromLabel.key]
+      : option.key
+      ? (row) => row[option.key]
+      : fallbackKey
+      ? (row) => row[fallbackKey]
+      : () => undefined);
+
+  const isNumeric = option.numeric ?? columnFromLabel?.isNumeric ?? false;
+  const direction = option.direction === "desc" ? -1 : 1;
+
+  const comparator =
+    option.comparator ??
+    ((a, b) => {
+      const valueA = valueAccessor(a);
+      const valueB = valueAccessor(b);
+
+      if (isNumeric) {
+        const numericA = Number(valueA ?? 0);
+        const numericB = Number(valueB ?? 0);
+        return direction * (numericA - numericB);
+      }
+
+      const stringA = String(valueA ?? "");
+      const stringB = String(valueB ?? "");
+      return (
+        direction *
+        stringA.localeCompare(stringB, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        })
+      );
+    });
+
+  return {
+    ...option,
+    value: option.value ?? option.label,
+    comparator,
+  };
+};
 export default function ProductsTable({
   fixedColumns: fixedColumnsProp,
   initialData,
+  sortOptions: sortOptionsProp,
 }) {
   // --- GLOBAL CONFIG ---
   const MAX_CUSTOM_COLUMNS = 10;
@@ -154,12 +209,12 @@ export default function ProductsTable({
 
   useEffect(() => {
     if (!Array.isArray(initialData)) return;
-
+    // if theres no initial data set it to default products
     if (initialData.length === 0) {
       setProducts([]);
       return;
     }
-
+    // otherwise set it to initial data prop
     setProducts(initialData.map((item) => ({ ...item })));
   }, [initialData]);
 
@@ -204,7 +259,7 @@ export default function ProductsTable({
   // Search + filter + sort states
   const [searchQuery, setSearchQuery] = useState("");
   const [filterColumn, setFilterColumn] = useState("All");
-  const [sortOption, setSortOption] = useState("None");
+  const [selectedSort, setSelectedSort] = useState("None");
 
   // --- FUNCTIONS ---
 
@@ -396,30 +451,35 @@ export default function ProductsTable({
         .includes(search);
     }
   });
+  const primaryColumnKey = fixedColumns[0]?.key ?? "name";
+
+  const normalizedSortOptions = useMemo(() => {
+    const baseOptions = [
+      { label: "Name (A-Z)", key: primaryColumnKey, direction: "asc" },
+      { label: "Name (Z-A)", key: primaryColumnKey, direction: "desc" },
+    ];
+
+    const mergedOptions =
+      Array.isArray(sortOptionsProp) && sortOptionsProp.length > 0
+        ? [...baseOptions, ...sortOptionsProp]
+        : baseOptions;
+
+    return mergedOptions.map((option) =>
+      normalizeSortOption(option, columnMap, primaryColumnKey)
+    );
+  }, [columnMap, primaryColumnKey, sortOptionsProp]);
+
+  const selectedSortDefinition = useMemo(
+    () =>
+      normalizedSortOptions.find((option) => option.value === selectedSort) ||
+      null,
+    [normalizedSortOptions, selectedSort]
+  );
 
   // Sorting
   filteredProducts = [...filteredProducts].sort((a, b) => {
-    if (sortOption === "Name (A-Z)" || sortOption === "Name (Z-A)") {
-      const primaryColumn = fixedColumns[0];
-      const key = primaryColumn ? primaryColumn.key : "name";
-      const valueA = String(a[key] ?? "");
-      const valueB = String(b[key] ?? "");
-      return sortOption === "Name (A-Z)"
-        ? valueA.localeCompare(valueB)
-        : valueB.localeCompare(valueA);
-    }
-    if (
-      sortOption === "Price (Low-High)" ||
-      sortOption === "Price (High-Low)"
-    ) {
-      const saleColumnKey = columnMap["Sale Price"]?.key ?? "sale";
-      const valueA = Number(a[saleColumnKey] ?? 0);
-      const valueB = Number(b[saleColumnKey] ?? 0);
-      return sortOption === "Price (Low-High)"
-        ? valueA - valueB
-        : valueB - valueA;
-    }
-    return 0;
+    if (!selectedSortDefinition) return 0;
+    return selectedSortDefinition.comparator(a, b);
   });
   // Build a list of visible columns so to reuse  when rendering headers and rows
   const visibleColumns = [
@@ -447,7 +507,7 @@ export default function ProductsTable({
   useEffect(() => {
     // set current page to 1 when any of the following states change
     setCurrentPage(1);
-  }, [searchQuery, filterColumn, sortOption, products]);
+  }, [searchQuery, filterColumn, selectedSort, products]);
 
   useEffect(() => {
     // keep the page input synchronized with the current page and available pages
@@ -536,15 +596,17 @@ export default function ProductsTable({
         </div>
 
         <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
+          value={selectedSort}
+          onChange={(e) => setSelectedSort(e.target.value)}
           className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="None">Sort by...</option>
-          <option value="Name (A-Z)">Name (A-Z)</option>
-          <option value="Name (Z-A)">Name (Z-A)</option>
-          <option value="Price (Low-High)">Price (Low → High)</option>
-          <option value="Price (High-Low)">Price (High → Low)</option>
+
+          {normalizedSortOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
       <button

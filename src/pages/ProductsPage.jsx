@@ -1,5 +1,6 @@
-import Table from "../components/Table";
+import Table from "../components/Table"; // import table
 
+// define columns
 const productColumns = [
   { key: "productName", label: "Product Name", defaultValue: "New Product" },
   { key: "supplier", label: "Supplier" },
@@ -13,7 +14,7 @@ const productColumns = [
     isNumeric: true,
   },
 ];
-
+/// temp data
 const sampleProducts = [
   {
     productName: "Carpet 1",
@@ -47,14 +48,6 @@ const sampleProducts = [
 export default function ProductsPage() {
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-        <p className="text-gray-600 mt-1">
-          Track supplier information, stock levels, and product attributes in
-          one place.
-        </p>
-      </div>
-
       <Table fixedColumns={productColumns} initialData={sampleProducts} />
     </div>
   );
