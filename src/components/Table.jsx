@@ -154,6 +154,7 @@ export default function ProductsTable({
   fixedColumns: fixedColumnsProp,
   initialData,
   sortOptions: sortOptionsProp,
+  onRowsChange,
 }) {
   // --- GLOBAL CONFIG ---
   const MAX_CUSTOM_COLUMNS = 10;
@@ -206,6 +207,12 @@ export default function ProductsTable({
     }
     return defaultProducts;
   });
+
+  useEffect(() => {
+    if (typeof onRowsChange === "function") {
+      onRowsChange(products);
+    }
+  }, [onRowsChange, products]);
 
   useEffect(() => {
     if (!Array.isArray(initialData)) return;

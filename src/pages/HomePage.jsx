@@ -1,9 +1,134 @@
 import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import Table from "../components/Table";
+const formatCurrency = (value) => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch (error) {
+    return `$${Number(value ?? 0).toLocaleString()}`;
+  }
+};
+
+const getNumericValue = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getProductLabel = (product) => {
+  if (!product || typeof product !== "object") return "Unnamed Product";
+
+  return (
+    product.name ||
+    product.productName ||
+    product.title ||
+    product.sku ||
+    product.id ||
+    product.type ||
+    "Unnamed Product"
+  );
+};
+
+const getSaleValue = (product) => {
+  if (!product) return null;
+  const saleKeys = ["sale", "salePrice", "totalSales", "revenue", "price"];
+  for (const key of saleKeys) {
+    const numeric = getNumericValue(product[key]);
+    if (numeric !== null) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
+const getStockLevel = (product) => {
+  if (!product) return null;
+  const stockKeys = ["stockLevel", "stock", "quantity", "inventory"];
+  for (const key of stockKeys) {
+    const numeric = getNumericValue(product[key]);
+    if (numeric !== null) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
+const getLowStockThreshold = (product) => {
+  if (!product) return null;
+  const thresholdKeys = [
+    "LowStockthreshold",
+    "lowStockThreshold",
+    "reorderPoint",
+    "minStock",
+  ];
+  for (const key of thresholdKeys) {
+    const numeric = getNumericValue(product[key]);
+    if (numeric !== null) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
 export default function HomePage() {
-  // Example data — replace with real inventory data later
-  const lowStockItems = ["Carpet 2", "Carpet 3"];
-  const bestSeller = "Carpet 1";
+  const [products, setProducts] = useState([]);
+
+  const handleRowsChange = useCallback((rows) => {
+    if (!Array.isArray(rows)) {
+      setProducts([]);
+      return;
+    }
+
+    setProducts(rows);
+  }, []);
+
+  const { totalProducts, formattedSales, lowStockItems, bestSeller } =
+    useMemo(() => {
+      const safeProducts = Array.isArray(products) ? products : [];
+
+      const totalProductsCount = safeProducts.length;
+
+      const totalSalesValue = safeProducts.reduce((sum, product) => {
+        const saleValue = getSaleValue(product);
+        return saleValue !== null ? sum + saleValue : sum;
+      }, 0);
+
+      const bestSellerProduct = safeProducts.reduce((best, product) => {
+        const saleValue = getSaleValue(product);
+        if (saleValue === null) return best;
+
+        if (!best || saleValue > best.value) {
+          return { label: getProductLabel(product), value: saleValue };
+        }
+
+        return best;
+      }, null);
+
+      const lowStockCandidates = safeProducts
+        .map((product) => {
+          const stockLevel = getStockLevel(product);
+          const threshold = getLowStockThreshold(product);
+
+          if (stockLevel === null || threshold === null) return null;
+
+          return stockLevel <= threshold ? getProductLabel(product) : null;
+        })
+        .filter(Boolean);
+
+      const uniqueLowStock = Array.from(new Set(lowStockCandidates));
+
+      return {
+        totalProducts: totalProductsCount,
+        formattedSales: formatCurrency(totalSalesValue),
+        lowStockItems: uniqueLowStock,
+        bestSeller:
+          bestSellerProduct?.label ??
+          (safeProducts.length > 0 ? getProductLabel(safeProducts[0]) : "N/A"),
+      };
+    }, [products]);
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -15,7 +140,7 @@ export default function HomePage() {
           <Package size={48} className="text-gray-700 flex-shrink-0" />
           <div>
             <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-3xl font-bold">9999</p>
+            <p className="text-3xl font-bold">{totalProducts}</p>
           </div>
         </div>
 
@@ -24,7 +149,7 @@ export default function HomePage() {
           <DollarSign size={48} className="text-gray-700 flex-shrink-0" />
           <div>
             <p className="text-sm text-gray-500">Total Sales</p>
-            <p className="text-3xl font-bold">$999999</p>
+            <p className="text-3xl font-bold">{formattedSales}</p>
           </div>
         </div>
 
@@ -40,7 +165,7 @@ export default function HomePage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">No low stock items 🎉</p>
+              <p className="text-gray-500 text-sm">No low stock items </p>
             )}
           </div>
         </div>
@@ -54,7 +179,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      <Table />
+      <Table onRowsChange={handleRowsChange} />
     </div>
   );
 }
