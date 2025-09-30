@@ -2,6 +2,7 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import HomePage from "./pages/HomePage";
 import ProductsPage from "./pages/ProductsPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import SalesPage from "./pages/salesPage";
 export default function App() {
   const [page, setPage] = useState("home");
@@ -13,6 +14,8 @@ export default function App() {
       <main className="flex-1 p-6 bg-gray-100">
         {page === "home" && <HomePage />}
         {page === "products" && <ProductsPage />}
+        {page === "analytics" && <AnalyticsPage />}
+
         {page === "sales" && <SalesPage />}
       </main>
     </div>

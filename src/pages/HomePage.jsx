@@ -1,6 +1,8 @@
-import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
 import Table from "../components/Table";
+
+// Format large totals for the dashboard cards in a readable currency string.
 const formatCurrency = (value) => {
   try {
     return new Intl.NumberFormat("en-US", {
@@ -13,11 +15,13 @@ const formatCurrency = (value) => {
   }
 };
 
+// Normalise arbitrary values so we can safely perform numeric comparisons.
 const getNumericValue = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+// Attempt to build a friendly product label even if column names differ.
 const getProductLabel = (product) => {
   if (!product || typeof product !== "object") return "Unnamed Product";
 
@@ -32,6 +36,7 @@ const getProductLabel = (product) => {
   );
 };
 
+// Inspect common sale-related fields and return the first numeric value found.
 const getSaleValue = (product) => {
   if (!product) return null;
   const saleKeys = ["sale", "salePrice", "totalSales", "revenue", "price"];
@@ -44,6 +49,7 @@ const getSaleValue = (product) => {
   return null;
 };
 
+// Look up the current stock level from whichever column the table provides.
 const getStockLevel = (product) => {
   if (!product) return null;
   const stockKeys = ["stockLevel", "stock", "quantity", "inventory"];
@@ -56,6 +62,7 @@ const getStockLevel = (product) => {
   return null;
 };
 
+// Read the configured low-stock threshold across multiple possible column names.
 const getLowStockThreshold = (product) => {
   if (!product) return null;
   const thresholdKeys = [
