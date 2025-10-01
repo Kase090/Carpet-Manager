@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
 import Table from "../components/Table";
+import { salesColumns, salesData } from "../data/sales";
 
 // Format large totals for the dashboard cards in a readable currency string.
 const formatCurrency = (value) => {
@@ -10,7 +11,7 @@ const formatCurrency = (value) => {
       currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
-  } catch (error) {
+  } catch {
     return `$${Number(value ?? 0).toLocaleString()}`;
   }
 };
@@ -75,7 +76,15 @@ const getProductLabel = (product) => {
 
 // Inspect common sale-related fields and return the first numeric value found.
 const getSaleValue = (product) => {
-  const saleKeys = ["sale", "salePrice", "totalSales", "revenue", "price"];
+  const saleKeys = [
+    "sale",
+    "salePrice",
+    "totalSales",
+    "revenue",
+    "price",
+    "totalLm",
+    "total",
+  ];
   return getFirstNumericByKeys(product, saleKeys);
 };
 
@@ -99,61 +108,63 @@ const getLowStockThreshold = (product) => {
 };
 
 export default function HomePage() {
-  const [products, setProducts] = useState([]);
+  const [salesRecords, setSalesRecords] = useState(salesData);
 
   const handleRowsChange = useCallback((rows) => {
     if (!Array.isArray(rows)) {
-      setProducts([]);
+      setSalesRecords([]);
       return;
     }
 
-    setProducts(rows);
+    setSalesRecords(rows);
   }, []);
 
-  const { totalProducts, formattedSales, lowStockItems, bestSeller } =
+  const { totalProductsSold, formattedSales, lowStockItems, bestSeller } =
     useMemo(() => {
-      const safeProducts = Array.isArray(products) ? products : [];
+      const safeRecords = Array.isArray(salesRecords) ? salesRecords : [];
 
-      const totalProductsCount = safeProducts.length;
+      const uniqueProducts = new Set(
+        safeRecords.map((record) => getProductLabel(record))
+      );
 
-      const totalSalesValue = safeProducts.reduce((sum, product) => {
-        const saleValue = getSaleValue(product);
+      const totalSalesValue = safeRecords.reduce((sum, record) => {
+        const saleValue = getSaleValue(record);
         return saleValue !== null ? sum + saleValue : sum;
       }, 0);
 
-      const bestSellerProduct = safeProducts.reduce((best, product) => {
-        const saleValue = getSaleValue(product);
+      const bestSellerRecord = safeRecords.reduce((best, record) => {
+        const saleValue = getSaleValue(record);
         if (saleValue === null) return best;
 
         if (!best || saleValue > best.value) {
-          return { label: getProductLabel(product), value: saleValue };
+          return { label: getProductLabel(record), value: saleValue };
         }
 
         return best;
       }, null);
 
-      const lowStockCandidates = safeProducts
-        .map((product) => {
-          const stockLevel = getStockLevel(product);
-          const threshold = getLowStockThreshold(product);
+      const lowStockCandidates = safeRecords
+        .map((record) => {
+          const stockLevel = getStockLevel(record);
+          const threshold = getLowStockThreshold(record);
 
           if (stockLevel === null || threshold === null) return null;
 
-          return stockLevel < threshold ? getProductLabel(product) : null;
+          return stockLevel < threshold ? getProductLabel(record) : null;
         })
         .filter(Boolean);
 
       const uniqueLowStock = Array.from(new Set(lowStockCandidates));
 
       return {
-        totalProducts: totalProductsCount,
+        totalProductsSold: uniqueProducts.size,
         formattedSales: formatCurrency(totalSalesValue),
         lowStockItems: uniqueLowStock,
         bestSeller:
-          bestSellerProduct?.label ??
-          (safeProducts.length > 0 ? getProductLabel(safeProducts[0]) : "N/A"),
+          bestSellerRecord?.label ??
+          (safeRecords.length > 0 ? getProductLabel(safeRecords[0]) : "N/A"),
       };
-    }, [products]);
+    }, [salesRecords]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col space-y-8 px-4 py-6 sm:px-6 sm:py-8">
@@ -172,8 +183,8 @@ export default function HomePage() {
           {/* Icon Left Center */}
           <Package className="flex-shrink-0 text-gray-700" size={40} />
           <div>
-            <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-3xl font-bold">{totalProducts}</p>
+            <p className="text-sm text-gray-500">Unique Products Sold</p>
+            <p className="text-3xl font-bold">{totalProductsSold}</p>
           </div>
         </div>
 
@@ -212,7 +223,11 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      <Table onRowsChange={handleRowsChange} />
+      <Table
+        fixedColumns={salesColumns}
+        onRowsChange={handleRowsChange}
+        initialData={salesData}
+      />
     </div>
   );
 }

@@ -56,7 +56,9 @@ export default function Sidebar({
 
           <nav className="mt-6">
             <ul className="space-y-4 text-lg">
-              {NAV_ITEMS.map(({ label, value, Icon }) => {
+              {NAV_ITEMS.map((item) => {
+                const { label, value } = item;
+                const IconComponent = item.Icon;
                 const isActive = value === activePage;
                 const itemClasses =
                   "flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition focus:outline-none  ";
@@ -72,7 +74,7 @@ export default function Sidebar({
                           : "hover:bg-white/5"
                       }`}
                     >
-                      <Icon size={22} /> {label}
+                      <IconComponent size={22} /> {label}
                     </button>
                   </li>
                 );
