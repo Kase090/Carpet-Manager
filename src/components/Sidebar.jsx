@@ -1,61 +1,104 @@
 // Import Icons
-import { Home, Table, BarChart2, DollarSign, LogOut } from "lucide-react";
+import { Home, Table, BarChart2, DollarSign, LogOut, X } from "lucide-react";
 
+const NAV_ITEMS = [
+  { label: "Home", value: "home", Icon: Home },
+  { label: "Products", value: "products", Icon: Table },
+  { label: "Analytics", value: "analytics", Icon: BarChart2 },
+  { label: "Sales", value: "sales", Icon: DollarSign },
+];
 // Accepts an optional `username` prop (defaults to "User")
 export default function Sidebar({
+  activePage = "home",
   handleLogout,
+  isOpen = false,
+  onClose,
   username = "User",
   setPage = () => {},
 }) {
+  const containerClasses =
+    "fixed inset-y-0 left-0 z-50 flex w-72 flex-col justify-between bg-gray-900 text-white shadow-xl transition-transform duration-300 md:static md:h-screen md:w-64 md:translate-x-0 md:shadow-none";
+
+  const handleNavigation = (page) => {
+    setPage(page);
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  };
   return (
-    // Main sidebar container
-    // h-screen: full height | w-64: fixed width | bg-gray-900: dark background
-    <div className="sticky top-0 h-screen w-64 bg-gray-900 text-white flex flex-col justify-between shadow-xl">
-      {/* Navigation section */}
-      <nav className="px-6 pt-14 flex-1">
-        <ul className="space-y-14 text-xl">
-          {/* Navigation Links */}
-          <li
-            onClick={() => setPage("home")}
-            className="flex items-center gap-4 cursor-pointer"
-          >
-            <Home size={24} /> Home
-          </li>
-          <li
-            onClick={() => setPage("products")}
-            className="flex items-center gap-4 cursor-pointer"
-          >
-            <Table size={24} /> Products
-          </li>
-          <li
-            onClick={() => setPage("analytics")}
-            className="flex items-center gap-4 cursor-pointer"
-          >
-            <BarChart2 size={24} /> Analytics
-          </li>
-          <li
-            onClick={() => setPage("sales")}
-            className="flex items-center gap-4 cursor-pointer"
-          >
-            <DollarSign size={24} /> Sales
-          </li>
-        </ul>
-      </nav>
-      {/* Account info + logout section */}
-      <div className="p-6">
-        {/* "Logged in as" text */}
-        <div className="flex flex-row space-x-1 text-md mb-6">
-          <span className="font-semibold">Logged in as</span>
-          <span className="font-bold">{username}</span>
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${
+          isOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Main sidebar container */}
+      <aside
+        className={`${containerClasses} ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex-1 overflow-y-auto px-6 pt-12 pb-8">
+          <div className="flex items-center justify-between md:hidden">
+            <span className="text-lg font-semibold">Navigation</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-1 text-gray-300 transition hover:text-white"
+              aria-label="Close navigation menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <nav className="mt-6">
+            <ul className="space-y-4 text-lg">
+              {NAV_ITEMS.map(({ label, value, Icon }) => {
+                const isActive = value === activePage;
+                const itemClasses =
+                  "flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition focus:outline-none  ";
+
+                return (
+                  <li key={value}>
+                    <button
+                      type="button"
+                      onClick={() => handleNavigation(value)}
+                      className={`${itemClasses} ${
+                        isActive
+                          ? "bg-white/10 font-semibold"
+                          : "hover:bg-white/5"
+                      }`}
+                    >
+                      <Icon size={22} /> {label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
         {/* Logout button */}
-        <div
-          onClick={handleLogout}
-          className="border-t border-gray-700 pt-4 flex items-center gap-2 cursor-pointer"
-        >
-          <LogOut size={24} /> Logout
+        {/* Account info + logout section */}
+        <div className="border-t border-white/10 px-6 py-6">
+          {/* "Logged in as" text */}
+          <div className="mb-6 flex flex-col text-sm text-gray-300">
+            <span className="font-semibold text-white">Logged in as</span>
+            <span className="font-bold text-white">{username}</span>
+          </div>
+          {/* Logout button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl border border-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-gray-900"
+          >
+            <LogOut size={20} /> Logout
+          </button>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 }

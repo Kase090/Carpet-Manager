@@ -138,19 +138,21 @@ export default function HomePage() {
     }, [products]);
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="mx-auto flex w-full max-w-7xl flex-col space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          Dashboard Overview
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">
           Monitor key metrics and manage your carpet inventory.
         </p>
       </header>
       {/* ====== Key Metrics Section ====== */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* Total Products */}
-        <div className="bg-white shadow-md rounded-xl p-6 flex items-center gap-4">
+        <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow-md sm:p-6">
           {/* Icon Left Center */}
-          <Package size={48} className="text-gray-700 flex-shrink-0" />
+          <Package className="flex-shrink-0 text-gray-700" size={40} />
           <div>
             <p className="text-sm text-gray-500">Total Products</p>
             <p className="text-3xl font-bold">{totalProducts}</p>
@@ -158,8 +160,8 @@ export default function HomePage() {
         </div>
 
         {/* Total Sales */}
-        <div className="bg-white shadow-md rounded-xl p-6 flex items-center gap-4">
-          <DollarSign size={48} className="text-gray-700 flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow-md sm:p-6">
+          <DollarSign className="flex-shrink-0 text-gray-700" size={40} />
           <div>
             <p className="text-sm text-gray-500">Total Sales</p>
             <p className="text-3xl font-bold">{formattedSales}</p>
@@ -167,8 +169,8 @@ export default function HomePage() {
         </div>
 
         {/* Low Stock Section */}
-        <div className="bg-white shadow-md rounded-xl p-6 flex items-center gap-4">
-          <AlertTriangle size={48} className=" flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow-md sm:p-6">
+          <AlertTriangle className="flex-shrink-0" size={40} />
           <div>
             <p className="text-lg font-bold text-gray-800">Low Stock</p>
             {lowStockItems.length > 0 ? (
@@ -184,8 +186,8 @@ export default function HomePage() {
         </div>
 
         {/* Best Seller */}
-        <div className="bg-white shadow-md rounded-xl p-6 flex items-center gap-4">
-          <Star size={48} className=" flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow-md sm:p-6">
+          <Star className="flex-shrink-0" size={40} />
           <div>
             <p className="text-lg font-bold text-gray-800">Best Seller</p>
             <p className="text-xl font-semibold text-gray-700">{bestSeller}</p>

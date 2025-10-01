@@ -1,11 +1,11 @@
 export default function LogIn({ setCodeInput, codeInput, handleLogin }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-8 sm:px-6">
       <form
         onSubmit={handleLogin}
-        className="w-full max-w-sm space-y-4 bg-white shadow-lg rounded-xl p-8"
+        className="w-full max-w-sm space-y-5 rounded-xl bg-white p-6 shadow-lg sm:p-8"
       >
-        <h1 className="text-2xl font-bold text-center text-gray-800">
+        <h1 className="text-center text-2xl font-bold text-gray-800">
           Carpet Manager
         </h1>
         <div className="space-y-2">

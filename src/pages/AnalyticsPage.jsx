@@ -9,7 +9,10 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,7 +25,7 @@ const formatCurrency = (value) => {
       currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
-  } catch (error) {
+  } catch {
     return `$${Number(value ?? 0).toLocaleString()}`;
   }
 };
@@ -45,6 +48,36 @@ const monthlySales = [
   { month: "Oct", sales: 54000 },
   { month: "Nov", sales: 58000 },
   { month: "Dec", sales: 61000 },
+];
+const discountPerformance = {
+  withDiscountRevenue: 186000,
+  withoutDiscountRevenue: 172000,
+  withDiscountUnits: 4120,
+  withoutDiscountUnits: 3520,
+  averageDiscountRate: 12,
+};
+
+const discountImpactCampaigns = [
+  {
+    campaign: "Spring Sale",
+    withDiscount: 42000,
+    withoutDiscount: 36000,
+  },
+  {
+    campaign: "Holiday Bundle",
+    withDiscount: 38000,
+    withoutDiscount: 31000,
+  },
+  {
+    campaign: "Clearance",
+    withDiscount: 32000,
+    withoutDiscount: 27000,
+  },
+  {
+    campaign: "Loyalty Offer",
+    withDiscount: 34000,
+    withoutDiscount: 28000,
+  },
 ];
 
 const topProducts = [
@@ -102,6 +135,19 @@ export default function AnalyticsPage() {
   const quietestMonth = monthlySales.reduce((worst, entry) =>
     entry.sales < worst.sales ? entry : worst
   );
+  const revenueLift =
+    discountPerformance.withDiscountRevenue -
+    discountPerformance.withoutDiscountRevenue;
+  const revenueLiftPercent = discountPerformance.withoutDiscountRevenue
+    ? (revenueLift / discountPerformance.withoutDiscountRevenue) * 100
+    : 0;
+
+  const unitsLift =
+    discountPerformance.withDiscountUnits -
+    discountPerformance.withoutDiscountUnits;
+  const unitsLiftPercent = discountPerformance.withoutDiscountUnits
+    ? (unitsLift / discountPerformance.withoutDiscountUnits) * 100
+    : 0;
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) {
@@ -117,19 +163,49 @@ export default function AnalyticsPage() {
       </div>
     );
   };
+  const DiscountTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const sortedPayload = [...payload].sort(
+      (a, b) => (b.value ?? 0) - (a.value ?? 0)
+    );
+
+    return (
+      <div className="rounded-xl border border-emerald-100 bg-white/95 px-3 py-2 shadow-sm">
+        <p className="text-xs font-medium text-emerald-600">{label}</p>
+        <ul className="mt-1 space-y-1 text-xs">
+          {sortedPayload.map((entry) => (
+            <li
+              key={entry.name}
+              className="flex items-center justify-between gap-6"
+            >
+              <span className="font-medium text-gray-600">{entry.name}</span>
+              <span className="font-semibold text-emerald-900">
+                {formatCurrency(entry.value)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="mx-auto flex w-full max-w-7xl flex-col space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          Analytics
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">
           Monitor monthly sales performance and identify the products and
           categories that drive the most revenue.
         </p>
       </header>
 
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
+      <section className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+        <div className="space-y-3 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 flex items-center gap-2">
               <BarChart3 size={18} /> Year-to-Date Sales
@@ -142,7 +218,7 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-500">Across the past 12 months</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
+        <div className="space-y-3 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 flex items-center gap-2">
               <CalendarRange size={18} /> Busiest Month
@@ -157,7 +233,7 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
+        <div className="space-y-3 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 flex items-center gap-2">
               <Package size={18} /> Quietest Month
@@ -174,7 +250,7 @@ export default function AnalyticsPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+        <div className="space-y-6 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-semibold text-gray-900">
               Sales Performance Over Time
@@ -183,7 +259,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="h-60">
+            <div className="h-60 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlySales}>
                   <defs>
@@ -231,8 +307,8 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="bg-emerald-50 rounded-xl p-4">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-xl bg-emerald-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-emerald-600">
                   Average Monthly Sales
                 </p>
@@ -240,7 +316,7 @@ export default function AnalyticsPage() {
                   {formatCurrency(averageMonthlySales)}
                 </p>
               </div>
-              <div className="bg-emerald-50 rounded-xl p-4">
+              <div className="rounded-xl bg-emerald-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-emerald-600">
                   Peak Season
                 </p>
@@ -248,7 +324,7 @@ export default function AnalyticsPage() {
                   {busiestMonth.month} · {formatCurrency(busiestMonth.sales)}
                 </p>
               </div>
-              <div className="bg-emerald-50 rounded-xl p-4">
+              <div className="rounded-xl bg-emerald-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-emerald-600">
                   Slow Season
                 </p>
@@ -258,7 +334,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+            <div className="grid grid-cols-1 gap-3 text-sm text-gray-600 sm:grid-cols-2">
               {monthlySales.map((entry) => (
                 <div
                   key={entry.month}
@@ -275,7 +351,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">
                 Top Products
@@ -330,7 +406,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">
                 Top Categories
@@ -358,6 +434,139 @@ export default function AnalyticsPage() {
                   </span>
                 </li>
               ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Discount Impact
+            </h2>
+            <p className="text-sm text-gray-500">
+              Compare how promotional pricing influences revenue and unit
+              volume.
+            </p>
+          </div>
+          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-medium text-emerald-700">
+            Static insight from recent campaigns
+          </span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p className="text-xs uppercase tracking-wide text-emerald-600">
+              Revenue Lift
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-900">
+              {formatCurrency(revenueLift)}
+            </p>
+            <p className="text-xs text-emerald-700">
+              {revenueLift >= 0 ? "+" : ""}
+              {revenueLiftPercent.toFixed(1)}% vs. no discount
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-emerald-600">
+              Units Lift
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-900">
+              {formatNumber(unitsLift)}
+            </p>
+            <p className="text-xs text-emerald-700">
+              {unitsLift >= 0 ? "+" : ""}
+              {unitsLiftPercent.toFixed(1)}% vs. no discount
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-emerald-600">
+              Avg. Discount Applied
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-900">
+              {discountPerformance.averageDiscountRate}%
+            </p>
+            <p className="text-xs text-gray-500">
+              {formatNumber(discountPerformance.withDiscountUnits)} units sold
+              with discounts
+            </p>
+          </div>
+        </div>
+
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={discountImpactCampaigns}
+              barGap={12}
+              margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis
+                dataKey="campaign"
+                tickLine={false}
+                axisLine={{ stroke: "#E5E7EB" }}
+                tick={{ fill: "#6B7280", fontSize: 12 }}
+              />
+              <YAxis
+                tickFormatter={(value) => `$${Math.round(value / 1000)}k`}
+                tickLine={false}
+                axisLine={{ stroke: "#E5E7EB" }}
+                tick={{ fill: "#6B7280", fontSize: 12 }}
+              />
+              <Tooltip
+                content={<DiscountTooltip />}
+                cursor={{ fill: "#ECFDF5" }}
+              />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="circle"
+                wrapperStyle={{ fontSize: 12, color: "#4B5563" }}
+              />
+              <Bar
+                dataKey="withoutDiscount"
+                name="Without Discount"
+                fill="#A7F3D0"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={36}
+              />
+              <Bar
+                dataKey="withDiscount"
+                name="With Discount"
+                fill="#10B981"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={36}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">
+            <p className="font-semibold">Key insight</p>
+            <p className="mt-2 text-emerald-800">
+              Discounts generated{" "}
+              {formatCurrency(discountPerformance.withDiscountRevenue)} in
+              revenue versus{" "}
+              {formatCurrency(discountPerformance.withoutDiscountRevenue)}{" "}
+              without promotions, adding {formatCurrency(revenueLift)} in
+              incremental sales and {formatNumber(unitsLift)} more units sold.
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-100 p-4 text-sm text-gray-600">
+            <p className="font-semibold text-gray-800">Next steps</p>
+            <ul className="mt-2 space-y-2 list-disc pl-4">
+              <li>
+                Focus future campaigns on offers near{" "}
+                {discountPerformance.averageDiscountRate}% where revenue lift
+                remains positive.
+              </li>
+              <li>
+                Monitor discount saturation—campaigns with smaller lifts may
+                need refreshed messaging or bundling to stay effective.
+              </li>
             </ul>
           </div>
         </div>
