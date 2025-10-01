@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
 import Table from "../components/Table";
-import { salesColumns, salesData } from "../data/sales";
+import { productColumns, sampleProducts } from "../data/product";
 
 // Format large totals for the dashboard cards in a readable currency string.
 const formatCurrency = (value) => {
@@ -108,24 +108,23 @@ const getLowStockThreshold = (product) => {
 };
 
 export default function HomePage() {
-  const [salesRecords, setSalesRecords] = useState(salesData);
-
+  const [productRecords, setProductRecords] = useState(
+    sampleProducts.map((item) => ({ ...item }))
+  );
   const handleRowsChange = useCallback((rows) => {
     if (!Array.isArray(rows)) {
-      setSalesRecords([]);
+      setProductRecords([]);
       return;
     }
 
-    setSalesRecords(rows);
+    setProductRecords(rows.map((row) => ({ ...row })));
   }, []);
 
-  const { totalProductsSold, formattedSales, lowStockItems, bestSeller } =
+  const { totalProducts, formattedSales, lowStockItems, bestSeller } =
     useMemo(() => {
-      const safeRecords = Array.isArray(salesRecords) ? salesRecords : [];
+      const safeRecords = Array.isArray(productRecords) ? productRecords : [];
 
-      const uniqueProducts = new Set(
-        safeRecords.map((record) => getProductLabel(record))
-      );
+      const totalProductCount = safeRecords.length;
 
       const totalSalesValue = safeRecords.reduce((sum, record) => {
         const saleValue = getSaleValue(record);
@@ -157,14 +156,14 @@ export default function HomePage() {
       const uniqueLowStock = Array.from(new Set(lowStockCandidates));
 
       return {
-        totalProductsSold: uniqueProducts.size,
+        totalProducts: totalProductCount,
         formattedSales: formatCurrency(totalSalesValue),
         lowStockItems: uniqueLowStock,
         bestSeller:
           bestSellerRecord?.label ??
           (safeRecords.length > 0 ? getProductLabel(safeRecords[0]) : "N/A"),
       };
-    }, [salesRecords]);
+    }, [productRecords]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col space-y-8 px-4 py-6 sm:px-6 sm:py-8">
@@ -183,8 +182,8 @@ export default function HomePage() {
           {/* Icon Left Center */}
           <Package className="flex-shrink-0 text-gray-700" size={40} />
           <div>
-            <p className="text-sm text-gray-500">Unique Products Sold</p>
-            <p className="text-3xl font-bold">{totalProductsSold}</p>
+            <p className="text-sm text-gray-500">Total Products</p>
+            <p className="text-3xl font-bold">{totalProducts}</p>
           </div>
         </div>
 
@@ -224,9 +223,9 @@ export default function HomePage() {
         </div>
       </div>
       <Table
-        fixedColumns={salesColumns}
+        fixedColumns={productColumns}
         onRowsChange={handleRowsChange}
-        initialData={salesData}
+        initialData={sampleProducts}
       />
     </div>
   );

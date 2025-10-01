@@ -1,5 +1,5 @@
 import Table from "../components/Table"; // import table
-import { productColumns, sampleProducts } from "../data/products";
+import { productColumns, sampleProducts } from "../data/product";
 
 export default function ProductsPage() {
   return (

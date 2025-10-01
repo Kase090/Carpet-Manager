@@ -4,6 +4,15 @@ export const productColumns = [
   { key: "id", label: "ID" },
   { key: "type", label: "Type" },
   { key: "colour", label: "Colour" },
+  {
+    key: "sale",
+    label: "Sale Price",
+    isNumeric: true,
+    headerSuffix: " /lm",
+    format: (value) => `$${value}`,
+    defaultValue: 0,
+  },
+
   { key: "stockLevel", label: "Stock Level /lm", isNumeric: true },
   {
     key: "LowStockthreshold",
