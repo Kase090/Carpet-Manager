@@ -57,24 +57,24 @@ const discountPerformance = {
   averageDiscountRate: 12,
 };
 
-const discountImpactCampaigns = [
+const discountImpactTypes = [
   {
-    campaign: "Spring Sale",
+    type: "Spring Sale",
     withDiscount: 42000,
     withoutDiscount: 36000,
   },
   {
-    campaign: "Holiday Bundle",
+    type: "Holiday Sale",
     withDiscount: 38000,
     withoutDiscount: 31000,
   },
   {
-    campaign: "Clearance",
+    type: "Clearance",
     withDiscount: 32000,
     withoutDiscount: 27000,
   },
   {
-    campaign: "Loyalty Offer",
+    type: "Bulk Discount",
     withDiscount: 34000,
     withoutDiscount: 28000,
   },
@@ -450,14 +450,14 @@ export default function AnalyticsPage() {
             </p>
           </div>
           <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-medium text-emerald-700">
-            Static insight from recent campaigns
+            Static insight from recent discount types
           </span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
             <p className="text-xs uppercase tracking-wide text-emerald-600">
-              Revenue Lift
+              Revenue Increase with discount
             </p>
             <p className="mt-1 text-2xl font-semibold text-emerald-900">
               {formatCurrency(revenueLift)}
@@ -470,7 +470,7 @@ export default function AnalyticsPage() {
 
           <div className="rounded-xl border border-emerald-100 bg-white p-4">
             <p className="text-xs uppercase tracking-wide text-emerald-600">
-              Units Lift
+              Units Increase
             </p>
             <p className="mt-1 text-2xl font-semibold text-emerald-900">
               {formatNumber(unitsLift)}
@@ -498,13 +498,13 @@ export default function AnalyticsPage() {
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={discountImpactCampaigns}
+              data={discountImpactTypes}
               barGap={12}
               margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis
-                dataKey="campaign"
+                dataKey="type"
                 tickLine={false}
                 axisLine={{ stroke: "#E5E7EB" }}
                 tick={{ fill: "#6B7280", fontSize: 12 }}
@@ -559,13 +559,13 @@ export default function AnalyticsPage() {
             <p className="font-semibold text-gray-800">Next steps</p>
             <ul className="mt-2 space-y-2 list-disc pl-4">
               <li>
-                Focus future campaigns on offers near{" "}
+                Focus future discount types on offers near{" "}
                 {discountPerformance.averageDiscountRate}% where revenue lift
                 remains positive.
               </li>
               <li>
-                Monitor discount saturation—campaigns with smaller lifts may
-                need refreshed messaging or bundling to stay effective.
+                Monitor discount discount types with smaller lifts may need
+                refreshed messaging or bundling to stay effective.
               </li>
             </ul>
           </div>

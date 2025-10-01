@@ -17,8 +17,45 @@ const formatCurrency = (value) => {
 
 // Normalise arbitrary values so we can safely perform numeric comparisons.
 const getNumericValue = (value) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9+\-.,]+/g, "");
+    const normalised = cleaned.replace(/,/g, "");
+    if (!normalised) return null;
+
+    const parsed = Number(normalised);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
+const normaliseKey = (key) =>
+  typeof key === "string" ? key.toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+
+const getFirstNumericByKeys = (product, candidateKeys) => {
+  if (!product || typeof product !== "object") return null;
+
+  for (const key of candidateKeys) {
+    if (key in product) {
+      const numeric = getNumericValue(product[key]);
+      if (numeric !== null) return numeric;
+    }
+  }
+
+  const normalisedCandidates = candidateKeys.map(normaliseKey);
+
+  for (const [actualKey, rawValue] of Object.entries(product)) {
+    if (normalisedCandidates.includes(normaliseKey(actualKey))) {
+      const numeric = getNumericValue(rawValue);
+      if (numeric !== null) return numeric;
+    }
+  }
+
+  return null;
 };
 
 // Attempt to build a friendly product label even if column names differ.
@@ -38,46 +75,27 @@ const getProductLabel = (product) => {
 
 // Inspect common sale-related fields and return the first numeric value found.
 const getSaleValue = (product) => {
-  if (!product) return null;
   const saleKeys = ["sale", "salePrice", "totalSales", "revenue", "price"];
-  for (const key of saleKeys) {
-    const numeric = getNumericValue(product[key]);
-    if (numeric !== null) {
-      return numeric;
-    }
-  }
-  return null;
+  return getFirstNumericByKeys(product, saleKeys);
 };
 
 // Look up the current stock level from whichever column the table provides.
 const getStockLevel = (product) => {
-  if (!product) return null;
   const stockKeys = ["stockLevel", "stock", "quantity", "inventory"];
-  for (const key of stockKeys) {
-    const numeric = getNumericValue(product[key]);
-    if (numeric !== null) {
-      return numeric;
-    }
-  }
-  return null;
+  return getFirstNumericByKeys(product, stockKeys);
 };
 
 // Read the configured low-stock threshold across multiple possible column names.
 const getLowStockThreshold = (product) => {
-  if (!product) return null;
   const thresholdKeys = [
     "LowStockthreshold",
     "lowStockThreshold",
+    "lowStock",
     "reorderPoint",
     "minStock",
+    "threshold",
   ];
-  for (const key of thresholdKeys) {
-    const numeric = getNumericValue(product[key]);
-    if (numeric !== null) {
-      return numeric;
-    }
-  }
-  return null;
+  return getFirstNumericByKeys(product, thresholdKeys);
 };
 
 export default function HomePage() {
@@ -121,7 +139,7 @@ export default function HomePage() {
 
           if (stockLevel === null || threshold === null) return null;
 
-          return stockLevel <= threshold ? getProductLabel(product) : null;
+          return stockLevel < threshold ? getProductLabel(product) : null;
         })
         .filter(Boolean);
 

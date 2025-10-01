@@ -57,7 +57,7 @@ const defaultFixedColumns = [
   },
   {
     key: "discount",
-    label: "Discount",
+    label: "Discount Received",
     isDerived: true,
     format: (value) => `${value.toFixed(1)}%`,
     derive: (row) => {

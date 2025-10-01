@@ -13,11 +13,10 @@ export default function Sidebar({
   handleLogout,
   isOpen = false,
   onClose,
-  username = "User",
   setPage = () => {},
 }) {
   const containerClasses =
-    "fixed inset-y-0 left-0 z-50 flex w-72 flex-col justify-between bg-gray-900 text-white shadow-xl transition-transform duration-300 md:static md:h-screen md:w-64 md:translate-x-0 md:shadow-none";
+    "fixed bottom-0 left-0 top-0 z-50 flex w-72 flex-col justify-between bg-gray-900 text-white shadow-xl transition-transform duration-300 md:sticky md:top-0 md:bottom-auto md:h-screen md:w-64 md:translate-x-0 md:self-start md:shadow-none";
 
   const handleNavigation = (page) => {
     setPage(page);
@@ -86,8 +85,7 @@ export default function Sidebar({
         <div className="border-t border-white/10 px-6 py-6">
           {/* "Logged in as" text */}
           <div className="mb-6 flex flex-col text-sm text-gray-300">
-            <span className="font-semibold text-white">Logged in as</span>
-            <span className="font-bold text-white">{username}</span>
+            <span className="font-semibold text-white">Logged in</span>
           </div>
           {/* Logout button */}
           <button

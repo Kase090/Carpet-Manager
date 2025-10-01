@@ -31,7 +31,7 @@ const sampleProducts = [
     id: "211234",
     type: "Type 2",
     colour: "Grey",
-    stockLevel: 99,
+    stockLevel: 9,
     LowStockthreshold: 10,
   },
   {

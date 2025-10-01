@@ -30,6 +30,7 @@ const salesColumns = [
     label: "Discount",
     defaultValue: "0%",
   },
+  { key: "discount Type", label: "Discount Type", defaultValue: "" },
 ];
 
 const salesData = [
