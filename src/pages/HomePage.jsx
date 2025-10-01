@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Package, DollarSign, AlertTriangle, Star } from "lucide-react";
 import Table from "../components/Table";
 import { productColumns, sampleProducts } from "../data/product";
+import { salesData } from "../data/sales";
 
 // Format large totals for the dashboard cards in a readable currency string.
 const formatCurrency = (value) => {
@@ -124,11 +125,21 @@ export default function HomePage() {
     useMemo(() => {
       const safeRecords = Array.isArray(productRecords) ? productRecords : [];
 
+      const safeSalesRecords = Array.isArray(salesData) ? salesData : [];
+
       const totalProductCount = safeRecords.length;
 
-      const totalSalesValue = safeRecords.reduce((sum, record) => {
-        const saleValue = getSaleValue(record);
-        return saleValue !== null ? sum + saleValue : sum;
+      const totalSalesValue = safeSalesRecords.reduce((sum, record) => {
+        const totalValue = getFirstNumericByKeys(record, [
+          "total$",
+          "totalAmount",
+          "totalRevenue",
+          "totalSales",
+          "totalLm",
+          "total",
+        ]);
+
+        return totalValue !== null ? sum + totalValue : sum;
       }, 0);
 
       const bestSellerRecord = safeRecords.reduce((best, record) => {
