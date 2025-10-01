@@ -48,6 +48,12 @@ const sampleProducts = [
 export default function ProductsPage() {
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-bold text-gray-900">Product Catalogue</h1>
+        <p className="text-gray-600">
+          Review product details, suppliers, and inventory thresholds.
+        </p>
+      </header>
       <Table fixedColumns={productColumns} initialData={sampleProducts} />
     </div>
   );

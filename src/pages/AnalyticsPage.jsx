@@ -6,7 +6,15 @@ import {
   Package,
   Trophy,
 } from "lucide-react";
-
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 const formatCurrency = (value) => {
   try {
     return new Intl.NumberFormat("en-US", {
@@ -95,29 +103,20 @@ export default function AnalyticsPage() {
     entry.sales < worst.sales ? entry : worst
   );
 
-  const chartWidth = 100;
-  const chartHeight = 100;
-  const chartPadding = 10;
-  const maxSales = Math.max(...monthlySales.map((entry) => entry.sales));
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) {
+      return null;
+    }
 
-  const linePoints = monthlySales
-    .map((entry, index) => {
-      const x =
-        chartPadding +
-        ((chartWidth - chartPadding * 2) * index) /
-          Math.max(monthlySales.length - 1, 1);
-      const y =
-        chartHeight -
-        chartPadding -
-        ((chartHeight - chartPadding * 2) * entry.sales) /
-          Math.max(maxSales, 1);
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
-
-  const areaPoints = `${linePoints} ${chartWidth - chartPadding},${
-    chartHeight - chartPadding
-  } ${chartPadding},${chartHeight - chartPadding}`;
+    return (
+      <div className="rounded-xl border border-emerald-100 bg-white/95 px-3 py-2 shadow-sm">
+        <p className="text-xs font-medium text-emerald-600">{label}</p>
+        <p className="text-sm font-semibold text-emerald-900">
+          {formatCurrency(payload[0].value)}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -180,46 +179,56 @@ export default function AnalyticsPage() {
             <h2 className="text-xl font-semibold text-gray-900">
               Sales Performance Over Time
             </h2>
-            <p className="text-sm text-gray-500">
-              Track monthly results to spot busy renovation seasons and plan
-              staffing or promotions during slower periods.
-            </p>
+            <p className="text-sm text-gray-500">Track monthly sales results</p>
           </div>
 
           <div className="space-y-6">
             <div className="h-60">
-              <svg
-                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                className="w-full h-full"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  <linearGradient
-                    id="salesGradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="0%"
-                    y2="100%"
-                  >
-                    <stop offset="0%" />
-                    <stop offset="100%" />
-                  </linearGradient>
-                </defs>
-                <polygon
-                  points={areaPoints}
-                  fill="url(#salesGradient)"
-                  stroke="none"
-                  className="transition-all duration-500"
-                />
-                <polyline
-                  points={linePoints}
-                  fill="none"
-                  strokeWidth={2.5}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  className="drop-shadow-sm"
-                />
-              </svg>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlySales}>
+                  <defs>
+                    <linearGradient
+                      id="salesGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="#10B981"
+                        stopOpacity={0.35}
+                      />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E7EB" }}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `$${Math.round(value / 1000)}k`}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E7EB" }}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: "#10B981", strokeDasharray: "4 4" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#059669"
+                    strokeWidth={2.5}
+                    fill="url(#salesGradient)"
+                    activeDot={{ r: 5, fill: "#047857" }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-sm">

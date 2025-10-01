@@ -2,7 +2,11 @@
 import { Home, Table, BarChart2, DollarSign, LogOut } from "lucide-react";
 
 // Accepts an optional `username` prop (defaults to "User")
-export default function Sidebar({ username = "User", setPage = () => {} }) {
+export default function Sidebar({
+  handleLogout,
+  username = "User",
+  setPage = () => {},
+}) {
   return (
     // Main sidebar container
     // h-screen: full height | w-64: fixed width | bg-gray-900: dark background
@@ -45,7 +49,10 @@ export default function Sidebar({ username = "User", setPage = () => {} }) {
           <span className="font-bold">{username}</span>
         </div>
         {/* Logout button */}
-        <div className="border-t border-gray-700 pt-4 flex items-center gap-2 cursor-pointer">
+        <div
+          onClick={handleLogout}
+          className="border-t border-gray-700 pt-4 flex items-center gap-2 cursor-pointer"
+        >
           <LogOut size={24} /> Logout
         </div>
       </div>

@@ -139,6 +139,12 @@ export default function HomePage() {
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+        <p className="text-gray-600">
+          Monitor key metrics and manage your carpet inventory.
+        </p>
+      </header>
       {/* ====== Key Metrics Section ====== */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Total Products */}

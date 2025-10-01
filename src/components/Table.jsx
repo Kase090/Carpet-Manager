@@ -572,7 +572,7 @@ export default function ProductsTable({
   }, [userMessage]);
 
   return (
-    <div className="pt-12 max-w-full mx-auto">
+    <div className=" max-w-full mt-0 mx-auto">
       {userMessage ? (
         <div className="mx-6 mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-blue-800">
           {userMessage}

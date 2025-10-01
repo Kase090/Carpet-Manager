@@ -68,6 +68,12 @@ const salesData = [
 export default function SalesPage() {
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-bold text-gray-900">Sales Records</h1>
+        <p className="text-gray-600">
+          Track recent transactions and analyse revenue performance.
+        </p>
+      </header>
       <Table fixedColumns={salesColumns} initialData={salesData} />
     </div>
   );
